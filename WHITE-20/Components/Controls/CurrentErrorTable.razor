@@ -1,0 +1,48 @@
+﻿@inject ICurrentErrorRepository _currentErrorRepository
+
+<Table DataSource="_currentErrors" TItem="CurrentError" PageIndex="1"
+       PageSize="10" Class="h-full w-full">
+    <TitleTemplate>
+        <GridRow>
+            <GridCol Span="8" Offset="0">
+                <Search Placeholder="搜索报警内容" @bind-Value="searchString" OnSearch="onSearch" />
+            </GridCol>
+        </GridRow>
+    </TitleTemplate>
+    <ColumnDefinitions>
+        <PropertyColumn Property="c=>c.Date"
+                        SorterCompare="@((string a, string b) => DateTime.Parse(a).CompareTo(DateTime.Parse(b)))"
+                        SortDirections="new[] { SortDirection.Descending, SortDirection.Ascending }"
+                        DefaultSortOrder="@SortDirection.Descending"
+                        Title="触发时间"/>
+        <PropertyColumn Property="c=>c.Content"
+                        SorterCompare="@((string a, string b) => string.Compare(a, b, StringComparison.Ordinal))"
+                        SortDirections="new[] { SortDirection.Descending, SortDirection.Ascending }"
+                        Filters="addressFilters"
+                        FilterMultiple="false"
+                        OnFilter="(value,address)=>address.StartsWith(value)" 
+                        Title="报警内容"/>
+    </ColumnDefinitions>
+</Table>
+
+@code {
+    private string searchString;
+
+    private List<CurrentError> _currentErrors { get; set; } = [];
+
+    public TableFilter<string>[] addressFilters = new TableFilter<string>[] {
+        new() { Text = "机器人", Value = "机器人" },
+        new() { Text = "夹爪", Value = "夹爪" },
+        new() { Text = "扫码枪", Value = "扫码枪" }
+    };
+
+    protected override void OnInitialized()
+    {
+        _currentErrors = _currentErrorRepository.GetAllHistoryErrors();
+    }
+
+    private void onSearch()
+    {
+        _currentErrors = _currentErrorRepository.SearchErrors(searchString);
+    }
+}

@@ -1,0 +1,21 @@
+﻿<div class="transition-all h-full border-r-[1px] border-gray-200/50 shrink-0">
+    <nav class="flex flex-col text-gray-600">
+        @foreach (var link in navLinks)
+        {
+            <NavLink @key="link.Href" class="@css" href="@link.Href" Match="@link.Match">
+                <p class="mr-3 iconfont @link.iconClass"></p>
+                <p>@link.Title</p>
+            </NavLink>
+        }
+    </nav>
+</div>
+
+@code {
+    private string css = "py-3 px-6 transition-all first:mt-0 flex items-center active:bg-red-900 hover:bg-red-700/80 hover:text-white";
+
+    private List<NavLinkItem> navLinks = [
+        new NavLinkItem { Href = "", Title = "主页界面", Match = NavLinkMatch.All, iconClass = "icon-home" },
+        new NavLinkItem { Href = "error", Title = "设备报警", iconClass = "icon-alarm" },
+    ];
+}
+

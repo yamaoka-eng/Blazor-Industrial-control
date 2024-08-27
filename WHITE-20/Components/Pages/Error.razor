@@ -1,0 +1,16 @@
+﻿@page "/error"
+
+<div class="main items-center justify-center overflow-auto">
+    <Tabs @bind-ActiveKey="@activeKey" Animated Class="w-full h-full">
+        <TabPane Tab="当前报警" Key="1">
+            <CurrentErrorTable/>
+        </TabPane>
+        <TabPane Tab="历史报警" Key="2">
+            <HistoryErrorTable />
+        </TabPane>
+    </Tabs>
+</div>
+
+@code {
+    string activeKey { get; set; } = "1";
+}

@@ -1,0 +1,28 @@
+﻿@page "/"
+@using System.Security.Claims
+
+<div class="main">
+    @if (isLogin)
+    {
+        <div>已登录,当前角色: @userRole</div>
+    }
+    else
+    {
+        <div>未登录</div>
+    }
+</div>
+
+@code {
+    private bool isLogin = false;
+    private string userRole = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var role = Furion.App.User.FindFirst(ClaimTypes.Role)?.Value;
+        if (!string.IsNullOrEmpty(role))
+        {
+            isLogin = true;
+            userRole = role;
+        }
+    }
+}

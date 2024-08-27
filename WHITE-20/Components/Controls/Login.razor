@@ -1,0 +1,175 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization;
+@using System.Security.Claims;
+@using System.Diagnostics.CodeAnalysis;
+@using BootstrapBlazor.Components
+@using System.Text.Json;
+@inject IMessageService _message
+@inject NavigationManager NavigationManager
+
+@* 登录控件 *@
+@switch (userRole)
+{
+    case "admin" :
+        <Popconfirm Title="是否退出登录？"
+                    OnConfirm="signOut">
+            <div class="flex items-center gap-2 cursor-pointer">
+                <div class="flex flex-col">
+                    <div>专家</div>
+                    <div class="text-xs text-gray-400">部分设备调试权限</div>
+                </div>
+                <div class="iconfont icon-yonghu text-3xl font-bold"></div>
+            </div>
+        </Popconfirm>
+        break;
+
+    case "superadmin":
+        <Popconfirm Title="是否退出登录？"
+                    OnConfirm="signOut">
+            <div class="flex items-center gap-2 cursor-pointer">
+                <div class="flex flex-col">
+                    <div>超级管理员</div>
+                    <div class="text-xs text-gray-400">全部设备调试权限</div>
+                </div>
+                <div class="iconfont icon-yonghu text-3xl font-bold"></div>
+            </div>
+        </Popconfirm>
+        break;
+
+    default:
+        <div class="flex items-center gap-2 cursor-pointer" @onclick="modalOpen">
+            <div class="flex flex-col items-start">
+                <div>操作员</div>
+                <div class="text-xs text-gray-400">无设备调试权限</div>
+            </div>
+            <div class="iconfont icon-yonghu text-3xl font-bold"></div>
+        </div>
+        break;
+}
+
+@* 弹窗登录 *@
+<CustomDialog
+       OnOk="@signIn"
+       OnCancel="@modalCancel"
+       Visible="@_modalVisible"
+       ConfirmButtonName = "登录">
+       <Body>
+            <div class="min-h-96 min-w-96 flex flex-col justify-center items-center p-2">
+                <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+                    <img class="mx-auto h-10 w-auto" src="/favicon.png" alt="Your Company">
+                    <h2 class="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">高级权限登录</h2>
+                </div>
+                <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-sm">
+                    <form class="space-y-6">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <label for="username" class="block text-sm font-medium leading-6 text-gray-900">用户名</label>
+                            </div>
+                            <div class="mt-2">
+                                <input @bind-value="user.UserName" id="email" name="email" type="email" autocomplete="email" required class="block w-full rounded-md border-0 px-1.5 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <label for="password" class="block text-sm font-medium leading-6 text-gray-900">密码</label>
+                            </div>
+                            <div class="mt-2">
+                                <input @bind-value="user.Password" id="password" name="password" type="password" autocomplete="current-password" required class="block w-full rounded-md border-0 px-1.5 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-6 py-3">
+                            <AntDesign.Switch @bind-Checked="user.RememberMe">
+                                <CheckedChildrenTemplate>
+                                    <Icon Type="check"></Icon>
+                                </CheckedChildrenTemplate>
+                                <UnCheckedChildrenTemplate>
+                                    <Icon Type="close"></Icon>
+                                </UnCheckedChildrenTemplate>
+                            </AntDesign.Switch>
+                            <div class="flex flex-col">
+                                <div>保持登录</div>
+                                <div class="text-xs text-gray-400">再次打开软件免登录</div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+       </Body>
+</CustomDialog>
+
+@code {
+    [Inject]
+    [NotNull]
+    private AjaxService? AjaxService { get; set; }
+
+    private bool _modalVisible = false;
+    private string userRole = "";
+    private User user = new() { RememberMe = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var role = Furion.App.User.FindFirst(ClaimTypes.Role)?.Value;
+        if (!string.IsNullOrEmpty(role)) userRole = role;
+    }
+
+    private async Task signOut()
+    {
+        var jsonDocument = await AjaxService.InvokeAsync(new() { Url = "/api/login", Method = "GET" });
+        string str = JsonSerializer.Serialize(jsonDocument.RootElement, new JsonSerializerOptions { WriteIndented = true });
+        dynamic ret = Furion.ClayObject.Clay.Parse(str);
+        if (ret.code == 200)
+        {
+            _message.Success("退出登录成功");
+            await InvokeAsync(() =>
+            {
+                userRole = "";
+                StateHasChanged();  // 显式触发 UI 更新
+            });
+            await AjaxService.Goto(NavigationManager.Uri);
+        }
+        else
+        {
+            _message.Error("退出登录失败");
+        }
+    }
+
+    private async Task signIn()
+    {
+        if(string.IsNullOrEmpty(user.UserName) || string.IsNullOrEmpty(user.Password))
+        {
+            _message.Info("请输入账号和密码");
+        }else
+        {
+            var jsonDocument = await AjaxService.InvokeAsync(new() { Url = "/api/login", Method = "POST", Data = user });
+            string str = JsonSerializer.Serialize(jsonDocument.RootElement, new JsonSerializerOptions { WriteIndented = true });
+            dynamic ret = Furion.ClayObject.Clay.Parse(str);
+            if (ret.code == 200)
+            {
+                _message.Success("登录成功");
+                await InvokeAsync(() =>
+                {
+                    userRole = "";
+                    StateHasChanged();  // 显式触发 UI 更新
+                });
+                user = new() { RememberMe = true };
+                _modalVisible = false;
+                await AjaxService.Goto(NavigationManager.Uri);
+            }
+            else
+            {
+                _message.Error("账号或密码错误");
+            }
+        }
+    }
+
+    private void modalCancel()
+    {
+        user = new() { RememberMe = true };
+        _modalVisible = false;
+    }
+
+    private void modalOpen()
+    {
+        _modalVisible = true;
+        StateHasChanged();
+    }
+}

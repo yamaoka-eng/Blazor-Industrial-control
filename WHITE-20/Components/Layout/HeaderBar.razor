@@ -1,0 +1,46 @@
+﻿@using System.Timers
+@inject ICurrentErrorRepository _currentErrorRepository
+@implements IDisposable
+
+<div class="flex justify-between py-4 px-4 shadow-md drop-shadow-sm text-center relative z-[999]">
+    <div class="flex items-center justify-center gap-10">
+        <div class="flex items-center justify-center text-sm font-semibold">
+            <div class="w-4 h-4 mr-1 flex items-center justify-center"><img src="favicon.png" /></div>
+            <p>玄刃科技</p>
+        </div>
+        <p class="text-lg font-bold">自动化高通量配液站</p>
+        <p>@currentTime.ToString("yyyy/MM/dd HH:mm")</p>
+    </div>
+    <div class="flex items-center gap-10 select-none">
+        <Badge Count="currentErrorCount">
+            <a href="/error" class="iconfont icon-baojing transition-all text-2xl"></a>
+        </Badge>
+        <Login/>
+    </div>
+</div>
+
+@code {
+    private Timer timer;
+    private DateTime currentTime = DateTime.Now;
+    private int currentErrorCount { get; set; } = 0;
+    
+    protected override void OnInitialized()
+    {
+        timer = new Timer(1000); // 设置定时器间隔为1000毫秒（1秒）
+        timer.Elapsed += UpdateTime;
+        timer.Enabled = true;
+
+        currentErrorCount = _currentErrorRepository.GetAllHistoryErrors().Count;
+    }
+
+    private void UpdateTime(object sender, ElapsedEventArgs e)
+    {
+        currentTime = DateTime.Now;
+        InvokeAsync(StateHasChanged); // 通知组件状态已改变，需要重新渲染
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+}
